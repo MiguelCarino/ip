@@ -1,0 +1,100 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>THIS WEBSITE HAS BEEN SEIZED</title>
+    <link rel="icon" href="https://carino.systems/assets/images/dont.webp">
+    <link rel="stylesheet" href="assets/css/styles.css">
+  </head>
+  <body>
+    <div class="frame">
+      <div class="images">
+        <a href="https://carino.systems"><img src="https://carino.systems/assets/images/dont.webp" /></a>
+      </div>
+      <h1>THIS WEBSITE HAS BEEN SEIZED</h1>
+      <p>
+        by the Federal Bureau of Over-Permissioning<br>
+        in conjunction with the Department of Redundancy Department,<br>
+        the Global Cookie Overlords Council,<br>
+        and the Ministry of User Discomfort.
+      </p>
+      <p>
+        Your IP address: <span id="ipv4">Fetching...</span><br>
+        Your browser info: <span id="ua">Loading...</span>
+      </p>
+      <div class="alert">⚠️ Additional Authorization Required ⚠️</div>
+      <button class="button" onclick="showModal()">Proceed Anyway</button>
+    </div>
+
+    <div class="modal" id="consentModal">
+      <h2>Final Mandatory Consent</h2>
+      <p>Please confirm you agree to give us:</p>
+      <ul>
+        <li>Your voice sample (optional but required)</li>
+        <li>Fingerprint via touch screen (if available)</li>
+        <li>Access to your smart fridge</li>
+        <li>Permission to tweet on your behalf</li>
+      </ul>
+      <button class="button" onclick="acceptModal()">I Consent</button>
+    </div>
+
+    <script>
+      function showModal() {
+        document.getElementById("consentModal").style.display = 'block';
+      }
+
+      function acceptModal() {
+        alert("Thank you. You may proceed to be monitored.");
+        document.getElementById("consentModal").style.display = 'none';
+      }
+
+      // Permissions
+      if('geolocation' in navigator) {
+        navigator.geolocation.getCurrentPosition(() => {});
+      }
+
+      if ('mediaDevices' in navigator) {
+        navigator.mediaDevices.getUserMedia({ audio: true, video: true }).then(() => {});
+      }
+
+      if ('Notification' in navigator) {
+        Notification.requestPermission().then(() => {});
+      }
+
+      if (navigator.storage && navigator.storage.persist) {
+        navigator.storage.persist().then(() => {});
+      }
+
+      if ('clipboard' in navigator && navigator.clipboard.readText) {
+        navigator.clipboard.readText().then(() => {});
+      }
+
+      if ('Gyroscope' in window) {
+        new Gyroscope({frequency: 60}).start();
+      }
+
+      if ('Magnetometer' in window) {
+        new Magnetometer({frequency: 60}).start();
+      }
+
+      if ('Accelerometer' in window) {
+        new Accelerometer({frequency: 60}).start();
+      }
+
+      // Get IP
+      fetch('https://api.ipify.org?format=json')
+        .then(response => response.json())
+        .then(data => {
+          document.getElementById("ipv4").textContent = data.ip;})
+        .catch(() => {
+          document.getElementById("ipv4").textContent = "Unavailable";
+        });
+      
+      // Get browser info
+      document.getElementById("ua").textContent = navigator.userAgent;
+      /*// Fake IP fetcher
+      document.getElementById("ip").textContent = 
+        Math.floor(Math.random()*255)+"."+Math.floor(Math.random()*255)+"."+Math.floor(Math.random()*255)+"."+Math.floor(Math.random()*255);*/
+    </script>
+  </body>
+</html>
