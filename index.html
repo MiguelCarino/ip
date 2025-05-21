@@ -1,0 +1,45 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>THIS WEBSITE HAS BEEN SEIZED</title>
+    <link rel="stylesheet" href="assets/css/styles.css">
+  </head>
+  <body>
+    <div class="frame">
+      <h1></h1>
+      <p>
+        Your IPv4 address: <span id="ipv4">Fetching...</span><br>
+        Your IPv6 address: <span id="ipv6">Fetching...</span><br>
+        Your browser info: <span id="ua">Loading...</span>
+      </p>
+    </div>
+
+    <script>
+      // Get IPv4
+      fetch('https://api.ipify.org?format=json')
+        .then(response => response.json())
+        .then(data => {
+          document.getElementById("ipv4").textContent = data.ip;
+        })
+        .catch(() => {
+          document.getElementById("ipv4").textContent = "Unavailable";
+        });
+      // Get IPv6
+      fetch('https://api64.ipify.org?format=json')
+        .then(response => response.json())
+        .then(data => {
+          document.getElementById("ipv6").textContent = data.ip;
+        })
+        .catch(() => {
+          document.getElementById("ipv6").textContent = "Unavailable";
+        });
+      
+      // Get browser info
+      document.getElementById("ua").textContent = navigator.userAgent;
+      /*// Fake IP fetcher
+      document.getElementById("ip").textContent = 
+        Math.floor(Math.random()*255)+"."+Math.floor(Math.random()*255)+"."+Math.floor(Math.random()*255)+"."+Math.floor(Math.random()*255);*/
+    </script>
+  </body>
+</html>
