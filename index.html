@@ -16,27 +16,33 @@
     </div>
 
     <script>
-      // Get IPv4
+      // Try to get IPv6
+      fetch('https://api64.ipify.org?format=json')
+        .then(res => res.json())
+        .then(data => {
+          if (data.ip.includes(":")) {
+            document.getElementById("ipv6").textContent = data.ip;
+          } else {
+            document.getElementById("ipv6").textContent = "Not detected";
+          }
+        })
+        .catch(() => {
+          document.getElementById("ipv6").textContent = "Unavailable";
+        });
+      
+      // Get IPv4 (fallback or always try)
       fetch('https://api.ipify.org?format=json')
-        .then(response => response.json())
+        .then(res => res.json())
         .then(data => {
           document.getElementById("ipv4").textContent = data.ip;
         })
         .catch(() => {
           document.getElementById("ipv4").textContent = "Unavailable";
         });
-      // Get IPv6
-      fetch('https://api64.ipify.org?format=json')
-        .then(response => response.json())
-        .then(data => {
-          document.getElementById("ipv6").textContent = data.ip;
-        })
-        .catch(() => {
-          document.getElementById("ipv6").textContent = "Unavailable";
-        });
       
-      // Get browser info
+      // Get browser user agent
       document.getElementById("ua").textContent = navigator.userAgent;
+      
       /*// Fake IP fetcher
       document.getElementById("ip").textContent = 
         Math.floor(Math.random()*255)+"."+Math.floor(Math.random()*255)+"."+Math.floor(Math.random()*255)+"."+Math.floor(Math.random()*255);*/
