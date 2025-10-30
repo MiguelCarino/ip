@@ -1,51 +1,132 @@
 <!doctype html>
 <html>
   <head>
-    <meta charset="utf-8">
+    <meta charset="utf-8" />
     <title>THIS WEBSITE HAS BEEN SEIZED</title>
-    <link rel="stylesheet" href="assets/css/styles.css">
+    <link rel="stylesheet" href="assets/css/styles.css" />
+    <!-- If you use a CSP, add (or extend) something like:
+    Content-Security-Policy: connect-src 'self' https://api.ipify.org https://api4.ipify.org https://api6.ipify.org https://api64.ipify.org https://ipapi.co;
+    -->
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      .muted { opacity:.8; font-size:.9em }
+      .error { color:#d33 }
+    </style>
   </head>
   <body>
     <div class="frame">
       <h1></h1>
       <p>
-        Your IPv4 address: <span id="ipv4">Fetching...</span><br>
-        Your IPv6 address: <span id="ipv6">Fetching...</span><br>
-        Your browser info: <span id="ua">Loading...</span>
+        Your IPv4 address: <span id="ipv4">Fetching…</span><br />
+        Your IPv6 address: <span id="ipv6">Fetching…</span><br />
+        Your browser info: <span id="ua">Loading…</span><br />
+        <span id="hint" class="muted"></span>
       </p>
+      <button id="retry" type="button">Retry</button>
     </div>
 
     <script>
-      // Try to get IPv6
-      fetch('https://api64.ipify.org?format=json')
-        .then(res => res.json())
-        .then(data => {
-          if (data.ip.includes(":")) {
-            document.getElementById("ipv6").textContent = data.ip;
-          } else {
-            document.getElementById("ipv6").textContent = "Not detected";
+      const $ = (id) => document.getElementById(id);
+      $("ua").textContent = navigator.userAgent;
+
+      // Generic fetch with timeout
+      async function fetchJSON(url, { timeoutMs = 4000 } = {}) {
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), timeoutMs);
+        try {
+          const res = await fetch(url, { mode: "cors", signal: ctrl.signal, cache: "no-store" });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return await res.json();
+        } finally {
+          clearTimeout(t);
+        }
+      }
+
+      async function fetchTEXT(url, { timeoutMs = 4000 } = {}) {
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), timeoutMs);
+        try {
+          const res = await fetch(url, { mode: "cors", signal: ctrl.signal, cache: "no-store" });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return (await res.text()).trim();
+        } finally {
+          clearTimeout(t);
+        }
+      }
+
+      // Try a list of providers in order until one succeeds
+      async function tryProviders(getters) {
+        const errors = [];
+        for (const g of getters) {
+          try {
+            return await g();
+          } catch (e) {
+            errors.push(e.message || String(e));
           }
-        })
-        .catch(() => {
-          document.getElementById("ipv6").textContent = "Unavailable";
-        });
-      
-      // Get IPv4 (fallback or always try)
-      fetch('https://api.ipify.org?format=json')
-        .then(res => res.json())
-        .then(data => {
-          document.getElementById("ipv4").textContent = data.ip;
-        })
-        .catch(() => {
-          document.getElementById("ipv4").textContent = "Unavailable";
-        });
-      
-      // Get browser user agent
-      document.getElementById("ua").textContent = navigator.userAgent;
-      
-      /*// Fake IP fetcher
-      document.getElementById("ip").textContent = 
-        Math.floor(Math.random()*255)+"."+Math.floor(Math.random()*255)+"."+Math.floor(Math.random()*255)+"."+Math.floor(Math.random()*255);*/
+        }
+        throw new Error(errors.join(" | "));
+      }
+
+      async function detectIPv6() {
+        // 1) Strict IPv6 (fails fast if user/network has no IPv6)
+        // 2) Dual-stack (may return v4 if v6 not present, we’ll check format)
+        // 3) ipapi.co as a last resort (has CORS)
+        const ip = await tryProviders([
+          async () => (await fetchJSON("https://api6.ipify.org?format=json")).ip,
+          async () => (await fetchJSON("https://api64.ipify.org?format=json")).ip,
+          async () => (await fetchJSON("https://ipapi.co/json/")).ip,
+        ]);
+        return ip && ip.includes(":") ? ip : null;
+      }
+
+      async function detectIPv4() {
+        // 1) Strict IPv4
+        // 2) Standard ipify (returns v4 on v4-only)
+        // 3) ipapi.co as a fallback
+        const ip = await tryProviders([
+          async () => (await fetchJSON("https://api4.ipify.org?format=json")).ip,
+          async () => (await fetchJSON("https://api.ipify.org?format=json")).ip,
+          async () => (await fetchJSON("https://ipapi.co/json/")).ip,
+        ]);
+        return ip && ip.includes(".") ? ip : null;
+      }
+
+      async function run() {
+        $("ipv4").textContent = "Fetching…";
+        $("ipv6").textContent = "Fetching…";
+        $("hint").textContent = "";
+
+        const notes = [];
+        // Run both in parallel to be snappy
+        const [v6, v4] = await Promise.allSettled([detectIPv6(), detectIPv4()]);
+
+        // IPv6
+        if (v6.status === "fulfilled" && v6.value) {
+          $("ipv6").textContent = v6.value;
+        } else {
+          $("ipv6").textContent = "Not detected";
+          notes.push("IPv6 not available or blocked.");
+          if (v6.status === "rejected") console.debug("IPv6 errors:", v6.reason?.message || v6.reason);
+        }
+
+        // IPv4
+        if (v4.status === "fulfilled" && v4.value) {
+          $("ipv4").textContent = v4.value;
+        } else {
+          $("ipv4").textContent = "Unavailable";
+          notes.push("IPv4 provider unreachable or blocked.");
+          if (v4.status === "rejected") console.debug("IPv4 errors:", v4.reason?.message || v4.reason);
+        }
+
+        // Helpful hint if both failed
+        if ((v6.status !== "fulfilled" || !v6.value) && (v4.status !== "fulfilled" || !v4.value)) {
+          $("hint").innerHTML =
+            "If this keeps saying <span class='error'>Unavailable</span>, check: AdBlock/Privacy extensions, strict network firewall, or your site's CSP <code>connect-src</code> not allowing the IP APIs.";
+        }
+      }
+
+      $("retry").addEventListener("click", run);
+      run();
     </script>
   </body>
 </html>
